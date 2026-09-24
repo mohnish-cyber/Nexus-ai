@@ -1,0 +1,38 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+
+# NEXUS runtime data (database, uploads, screenshots, backups, trash, secret key)
+backend/data/
+
+# Node
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+.vite/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Test artefacts
+playwright-report/
+test-results/
+coverage/
