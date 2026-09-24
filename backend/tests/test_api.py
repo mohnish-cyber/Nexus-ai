@@ -254,3 +254,21 @@ def test_voice_endpoints_without_providers(client: TestClient) -> None:
     assert r.status_code == 503 and r.json()["error"]["code"] == "stt_not_configured"
     r = client.post("/api/voice/speak", json={"text": "hello"}, headers=ORIGIN)
     assert r.status_code == 503 and r.json()["error"]["code"] == "tts_not_configured"
+
+
+def test_same_origin_allowed_and_rebinding_blocked(client: TestClient) -> None:
+    # The built app served by FastAPI itself posts from its own origin.
+    ok = client.post("/api/tasks", json={"title": "same origin"}, headers={"origin": "http://localhost"})
+    assert ok.status_code == 201
+    # DNS rebinding: attacker domain resolving to 127.0.0.1 - Host is not trusted.
+    r = client.post("/api/tasks", json={"title": "x"}, headers={"origin": "http://evil.example", "host": "evil.example"})
+    assert r.status_code == 400
+
+
+def test_declined_action_is_not_an_error(client: TestClient) -> None:
+    client.post("/api/memories", json={"category": "person", "subject": "sister", "value": "Ana"}, headers=ORIGIN)
+    # REST is non-interactive, so the MEDIUM-risk forget can't be approved.
+    msg = client.post("/api/chat", json={"text": "Forget my sister"}, headers=ORIGIN).json()
+    assert msg["status"] == "complete" and msg["content"].startswith("Okay — I didn't go ahead")
+    assert msg["actions"][0]["status"] == "denied"
+    assert len(client.get("/api/memories").json()) == 1

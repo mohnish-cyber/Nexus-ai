@@ -74,9 +74,22 @@ def compute_next_run(trigger_type: str, schedule: dict[str, Any], tz: str, after
     return nxt.astimezone(UTC)
 
 
+_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+
 def describe_schedule(trigger_type: str, schedule: dict[str, Any]) -> str:
     if trigger_type == "once":
-        return f"once at {schedule.get('run_at')}"
+        return "one-time"
+    if trigger_type == "cron":
+        parts = str(schedule.get("cron", "")).split()
+        if len(parts) == 5 and parts[0].isdigit() and parts[1].isdigit() and parts[2] == "*" and parts[3] == "*":
+            at = f"{int(parts[1]):02d}:{int(parts[0]):02d}"
+            if parts[4] == "*":
+                return f"daily at {at}"
+            if parts[4].isdigit():
+                return f"every {_DAYS[int(parts[4]) % 7]} at {at}"
+            if parts[4] == "1-5":
+                return f"weekdays at {at}"
     if trigger_type == "interval":
         s = int(schedule.get("seconds", 0))
         if s % 86400 == 0:

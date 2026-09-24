@@ -140,7 +140,13 @@ class NexusCore:
             answer, streamed = self._compose(results, provider_error)
 
         answer, problems = verify(answer, ctx.actions)
-        failed = bool(results) and all(r.status == "failed" for r in results)
+        declined = bool(results) and (results[-1].error or {}).get("code") in ("not_approved", "approval_required")
+        if declined and results[-1].status == "failed":
+            # The user said no (or couldn't be asked): that's a normal outcome, not a failure.
+            answer = f"Okay — I didn't go ahead. {results[-1].error.get('message', '')}".strip()
+            if results[-1].error.get("next_step"):
+                answer += f"\n\n{results[-1].error['next_step']}"
+        failed = bool(results) and all(r.status == "failed" for r in results) and not declined
         meta = {
             "plan": plan.to_public(),
             "intent": intent.to_dict(),

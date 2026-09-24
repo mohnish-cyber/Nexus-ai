@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field, ValidationError
 
 from app.api.deps import chat_user
+from app.api.middleware import origin_allowed
 from app.config import get_settings
 from app.core.context import RequestContext
 from app.core.errors import ErrorInfo, NexusError
@@ -97,8 +98,7 @@ class _Connection:
 @router.websocket("/ws")
 async def chat_ws(websocket: WebSocket) -> None:
     settings = get_settings()
-    origin = websocket.headers.get("origin")
-    if origin and origin not in settings.cors_origin_list:
+    if not origin_allowed(websocket.headers.get("origin"), websocket.headers.get("host")):
         # Browsers always send Origin; a foreign one means another website is trying to connect.
         await websocket.close(code=4403)
         return

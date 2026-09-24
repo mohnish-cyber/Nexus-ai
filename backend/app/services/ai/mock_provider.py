@@ -26,6 +26,8 @@ class DevMockProvider(AIProvider):
                        effort: str | None = None, max_tokens: int | None = None,
                        on_text: TextCallback | None = None) -> ProviderResponse:
         last_user = next((m.text() for m in reversed(messages) if m.role == "user"), "")
+        if "User message:" in last_user:  # strip NexusCore's context block
+            last_user = last_user.rsplit("User message:", 1)[1]
         if "Respond with JSON only" in system or "Return ONLY JSON" in system:
             return ProviderResponse(text="{}", tool_calls=[], stop_reason="end", model=self.model)
         text = (

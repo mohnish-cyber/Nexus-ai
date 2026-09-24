@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -9,6 +11,12 @@ from starlette.responses import JSONResponse, Response
 from app.config import get_settings
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+APP_CSP = (
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; "
+    "media-src 'self' blob:; connect-src 'self' ws: wss: https://*.supabase.co wss://*.supabase.co; "
+    "font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -21,7 +29,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if request.url.path.startswith("/api/"):
             response.headers.setdefault("Cache-Control", "no-store")
             response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; sandbox")
+        elif response.headers.get("content-type", "").startswith("text/html"):
+            # The built web app (served by FastAPI in production).
+            response.headers.setdefault("Content-Security-Policy", APP_CSP)
         return response
+
+
+def origin_allowed(origin: str | None, host: str | None) -> bool:
+    """True for same-origin requests, configured frontend origins, and non-browser clients (no Origin)."""
+    if not origin:
+        return True
+    if origin == "null":
+        return False
+    if origin in get_settings().cors_origin_list:
+        return True
+    parts = urlsplit(origin)
+    return bool(host) and parts.netloc.lower() == host.lower()
 
 
 class OriginGuardMiddleware(BaseHTTPMiddleware):
@@ -35,7 +58,7 @@ class OriginGuardMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.method in _UNSAFE_METHODS:
             origin = request.headers.get("origin")
-            if origin and origin != "null" and origin not in get_settings().cors_origin_list:
+            if not origin_allowed(origin, request.headers.get("host")):
                 return JSONResponse(
                     status_code=403,
                     content={"error": {"code": "origin_not_allowed",
@@ -43,7 +66,4 @@ class OriginGuardMiddleware(BaseHTTPMiddleware):
                                        "reason": f"Origin {origin} is not in CORS_ORIGINS.",
                                        "next_step": "Add the origin to CORS_ORIGINS if it is your NEXUS frontend."}},
                 )
-            if origin == "null":
-                return JSONResponse(status_code=403, content={"error": {
-                    "code": "origin_not_allowed", "message": "Requests from sandboxed pages are not allowed."}})
         return await call_next(request)

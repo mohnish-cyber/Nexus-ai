@@ -33,7 +33,7 @@ async def dispatch(agent_name: str, task: AgentTask, ctx: RequestContext, provid
 
     previous_run, previous_agent = ctx.agent_run_id, ctx.current_agent
     ctx.agent_run_id, ctx.current_agent = run_id, agent.title
-    activity = await ctx.activity(agent.title, f"{agent.title} working", "started", detail=task.instruction[:160])
+    activity = await ctx.activity(agent.title, "Working on the request", "started", detail=task.instruction[:160])
     try:
         result = await agent.run(task, ctx, provider, stream=stream)
     except asyncio.CancelledError:
@@ -50,7 +50,7 @@ async def dispatch(agent_name: str, task: AgentTask, ctx: RequestContext, provid
         ctx.agent_run_id, ctx.current_agent = previous_run, previous_agent
 
     status = "succeeded" if result.status != "failed" else "failed"
-    await ctx.activity(agent.title, f"{agent.title} {'finished' if status == 'succeeded' else 'failed'}", status,
+    await ctx.activity(agent.title, "Finished" if status == "succeeded" else "Could not complete the request", status,
                        detail=(result.error or {}).get("message") if result.error else None, activity_id=activity)
     await _finish(run_id, status, result.answer[:2000], result.error)
     return result

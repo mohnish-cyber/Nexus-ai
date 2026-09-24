@@ -30,6 +30,10 @@ async def fresh_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIte
 
     data_dir = tmp_path / "data"
     monkeypatch.setenv("NEXUS_DATA_DIR", str(data_dir))
+    # Run the suite against PostgreSQL with NEXUS_TEST_DATABASE_URL=postgresql+asyncpg://...
+    test_db = os.environ.get("NEXUS_TEST_DATABASE_URL")
+    if test_db:
+        monkeypatch.setenv("DATABASE_URL", test_db)
     monkeypatch.setenv("NEXUS_SECRET_KEY", "test-secret-key-for-nexus-tests-only")
     # Never pick up the developer's real .env during tests.
     monkeypatch.setitem(Settings.model_config, "env_file", ())
@@ -42,6 +46,14 @@ async def fresh_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIte
     factory._cache.clear()
     factory._health_cache.clear()
     await db_session.init_db()
+    if test_db:
+        from sqlalchemy import text
+
+        from app.models import Base
+
+        async with db_session.get_engine().begin() as conn:
+            names = ", ".join(t.name for t in Base.metadata.sorted_tables)
+            await conn.execute(text(f"TRUNCATE {names} CASCADE"))
     yield data_dir
     factory.set_provider_override(None)
     await db_session.dispose_engine()

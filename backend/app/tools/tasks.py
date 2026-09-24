@@ -109,7 +109,9 @@ class ListTasksTool(Tool):
         for t in rows:
             due = f" (due {humanize(t.due_at, ctx.timezone)})" if t.due_at else ""
             lines.append(f"- [{t.status}] {t.title}{due} · priority {t.priority} · id {t.id}")
-        return ToolOutput(summary=f"{len(rows)} {params.view} tasks",
+        label = {"open": "open", "today": "due today", "overdue": "overdue", "upcoming": "upcoming", "done": "completed",
+                 "all": ""}[params.view]
+        return ToolOutput(summary=f"Found {len(rows)} {label} task{'s' if len(rows) != 1 else ''}".replace("  ", " "),
                           content="\n".join(lines) or f"No {params.view} tasks.", data={"count": len(rows)})
 
 
