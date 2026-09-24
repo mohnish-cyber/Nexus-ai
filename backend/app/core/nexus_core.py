@@ -37,6 +37,7 @@ from app.services.preferences import get_preferences
 logger = logging.getLogger(__name__)
 
 MAX_INPUT_CHARS = 20000
+_background: set[asyncio.Task[Any]] = set()
 _ACTION_AGENTS = {"computer", "coding", "automation"}
 _UNSUPPORTED = {
     "email": "Email isn't connected to NEXUS yet, so I can't read or send messages. It's on the roadmap as "
@@ -161,10 +162,13 @@ class NexusCore:
         await ctx.emit({"type": "message", "message": msg})
         await ctx.set_state("error" if failed else "completed", None)
 
-        asyncio.create_task(
+        task = asyncio.create_task(
             update_after_turn(ctx.user.id, text, ctx.preferences, provider, list(ctx.actions), ctx.emit),
             name=f"memory-update-{ctx.request_id}",
         )
+        # Keep a reference until done so the task isn't garbage-collected mid-run.
+        _background.add(task)
+        task.add_done_callback(_background.discard)
         return msg
 
     # ------------------------------------------------------------------
