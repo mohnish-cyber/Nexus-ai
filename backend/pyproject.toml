@@ -1,0 +1,73 @@
+[project]
+name = "nexus-backend"
+version = "0.1.0"
+description = "NEXUS - Personal AI Operating System (backend)"
+readme = "../README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "sqlalchemy[asyncio]>=2.0.30",
+    "aiosqlite>=0.20",
+    "asyncpg>=0.29",
+    "httpx>=0.27",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "anthropic>=1.8",
+    "pypdf>=4.2",
+    "python-docx>=1.1",
+    "pillow>=10.3",
+    "python-multipart>=0.0.9",
+    "pyjwt[crypto]>=2.8",
+    "cryptography>=42",
+    "croniter>=2.0",
+    "dateparser>=1.2",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+# Local desktop capabilities (screenshots, browser automation, local speech-to-text).
+desktop = [
+    "mss>=9.0",
+    "playwright>=1.44",
+]
+local-stt = [
+    "faster-whisper>=1.0",
+]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "ruff>=0.5",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = [
+    "S101",  # assert is fine in tests
+    "S603",  # subprocess without shell: we validate via the command allowlist
+    "B008",  # FastAPI Depends() in defaults
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B"]
