@@ -132,6 +132,7 @@ frontend/           React 19 + TypeScript + Vite + Tailwind CSS 4
   src/pages/        Home, Assistant, Tasks, Memory, Files, Automations, Agents, Devices, Settings, Login
   src/stores/       zustand stores (chat event stream, system, voice, settings, notifications, auth)
   src/services/     REST client, WebSocket client, voice (recorder, STT, TTS, wake word)
+site/               Marketing site (landing, pricing, docs, live status page); see site/README.md
 supabase/migrations Generated PostgreSQL schema with Row Level Security
 docs/               Architecture, security, API and extension guides
 ```
